@@ -37,6 +37,11 @@ contract DepositTokenFactory {
     return allTokens;
   }
 
+  function totalTokens() external view returns (uint256) {
+    return allTokens.length;
+  }
+
+
   function transferOwnership(address newOwner) external onlyOwner {
     require(newOwner != address(0), "Zero address");
     owner = newOwner;
