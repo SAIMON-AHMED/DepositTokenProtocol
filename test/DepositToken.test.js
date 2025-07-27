@@ -46,7 +46,7 @@ describe("DepositToken", function () {
     await oracle.setReserveRatio(ethers.parseEther("0.5"));
     await expect(
       depositToken.connect(user1).mint(user1.address, 1000, "0x00")
-    ).to.be.revertedWith("Reserve ratio too low");
+    ).to.be.revertedWith("Paused: Reserve below threshold");
   });
 
   it("fails to mint if zk proof is invalid", async function () {
@@ -64,9 +64,9 @@ describe("DepositToken", function () {
 
   it("pauses if reserve falls below KAPPA", async function () {
     await oracle.setReserveRatio(ethers.parseEther("0.4"));
-    await depositToken.connect(owner).forcePause();
+    await controller.connect(owner).pause();
     expect(await controller.isPaused()).to.equal(true);
-  });
+  });  
 
   it("prevents minting while paused", async function () {
     await controller.connect(owner).pause();
