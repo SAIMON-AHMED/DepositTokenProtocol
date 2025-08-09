@@ -1,0 +1,10 @@
+{
+  "name": "Circom Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "settings": {},
+  "extensions": ["ms-vscode.cpptools", "dbaeumer.vscode-eslint"],
+  "postCreateCommand": "npm install -g snarkjs",
+  "remoteUser": "root"
+}

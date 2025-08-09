@@ -1,0 +1,10 @@
+[
+  "constructor()",
+  "event DepositTokenCreated(address indexed,string,string)",
+  "function allTokens(uint256) view returns (address)",
+  "function createDepositToken(string,string,address,address,address) returns (address)",
+  "function getAllTokens() view returns (address[])",
+  "function owner() view returns (address)",
+  "function totalTokens() view returns (uint256)",
+  "function transferOwnership(address)"
+]

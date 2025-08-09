@@ -1,0 +1,8 @@
+[
+  "function forcePause()",
+  "function mint(address,uint256,bytes)",
+  "function redeem(uint256)",
+  "function setGovernanceController(address)",
+  "function setReserveOracle(address)",
+  "function setVerifier(address)"
+]

@@ -1,0 +1,6 @@
+[
+  "constructor(bool)",
+  "function setValid(bool)",
+  "function valid() view returns (bool)",
+  "function verifyProof(bytes) view returns (bool)"
+]

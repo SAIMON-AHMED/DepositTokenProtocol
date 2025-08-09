@@ -1,0 +1,8 @@
+[
+  "constructor()",
+  "event ReserveRatioUpdated(uint256)",
+  "function owner() view returns (address)",
+  "function reserveRatio() view returns (uint256)",
+  "function setReserveRatio(uint256)",
+  "function transferOwnership(address)"
+]

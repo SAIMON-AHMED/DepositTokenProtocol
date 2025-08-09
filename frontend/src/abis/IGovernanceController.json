@@ -1,0 +1,6 @@
+[
+  "function governor() view returns (address)",
+  "function isGovernor(address) view returns (bool)",
+  "function isPaused() view returns (bool)",
+  "function pause()"
+]

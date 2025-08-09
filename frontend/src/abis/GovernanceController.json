@@ -1,0 +1,14 @@
+[
+  "constructor(address)",
+  "function depositToken() view returns (address)",
+  "function governor() view returns (address)",
+  "function governorAddress() view returns (address)",
+  "function isGovernor(address) view returns (bool)",
+  "function isPaused() view returns (bool)",
+  "function owner() view returns (address)",
+  "function pause()",
+  "function paused() view returns (bool)",
+  "function setDepositToken(address)",
+  "function setGovernor(address)",
+  "function unpause()"
+]
