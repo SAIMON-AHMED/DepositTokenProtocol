@@ -145,16 +145,16 @@ REPORT_GAS=true npx hardhat test
 
 ### Test Coverage
 
-| Component | Tests | Status |
-|-----------|-------|--------|
-| DepositToken Core | 7 | Passing |
-| GovernanceController | 5 | Passing |
-| ReserveRegistry | 5 | Passing |
-| ReserveOracle | 5 | Passing |
-| zkVerifierMock | 3 | Passing |
-| Integration Flows | 6 | Passing |
-| Deployment | 3 | Passing |
-| TOTAL | 29 | ALL PASSING |
+| Component            | Tests | Status      |
+| -------------------- | ----- | ----------- |
+| DepositToken Core    | 7     | Passing     |
+| GovernanceController | 5     | Passing     |
+| ReserveRegistry      | 5     | Passing     |
+| ReserveOracle        | 5     | Passing     |
+| zkVerifierMock       | 3     | Passing     |
+| Integration Flows    | 6     | Passing     |
+| Deployment           | 3     | Passing     |
+| TOTAL                | 29    | ALL PASSING |
 
 ## Usage Guide
 
@@ -197,14 +197,6 @@ REPORT_GAS=true npx hardhat test
 - zkProof verification depends on circuit implementation
 - Oracle reliability depends on data source security
 
-## Documentation
-
-- QUICK_START.md - 3-step local setup
-- FRONTEND_GUIDE.md - Complete frontend usage
-- TESTING.md - Test specifications and coverage
-- IMPLEMENTATION_SUMMARY.md - All changes made
-- PUBLICATION_READINESS.md - Publication assessment
-- GITHUB_PUBLISH.md - Publishing to GitHub
 
 ## Benchmarking
 
