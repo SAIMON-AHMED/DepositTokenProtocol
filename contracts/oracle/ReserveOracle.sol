@@ -1,48 +1,79 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../libs/MathLib.sol";
+import "../interfaces/IReserveRegistry.sol";
+import "../interfaces/IGovernanceController.sol";
 
-/// @title ReserveOracle - Provides reserve ratio information for deposit token minting
-/// @notice Allows setting and querying of current reserve ratio
+/// @title ReserveOracle
+/// @notice Reporter/adapter that publishes reserve attestations into the canonical ReserveRegistry
+/// @dev This contract does NOT enforce minting logic. It only reports reserve state.
+///      ReserveOracle must be authorized as a reporter on ReserveRegistry by governance
+///      before it can call setReserveRatio(). DepositToken reads from ReserveRegistry,
+///      not directly from ReserveOracle.
 contract ReserveOracle {
-  using MathLib for uint256;
+    IGovernanceController public governanceController;
+    IReserveRegistry public reserveRegistry;
 
-  address public owner;
-  uint256 private _reserveRatio; // 1e18 = 100%
+    address public owner;
 
-  event ReserveRatioUpdated(uint256 newRatio);
+    event OwnershipTransferred(
+        address indexed oldOwner,
+        address indexed newOwner
+    );
+    event ReserveRegistryUpdated(
+        address indexed oldRegistry,
+        address indexed newRegistry
+    );
+    event ReserveRatioReported(uint256 ratio, address indexed reporter);
 
-  modifier onlyOwner() {
-    require(msg.sender == owner, "Not owner");
-    _;
-  }
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        _;
+    }
 
-  constructor() {
-    owner = msg.sender;
-  }
+    modifier onlyGovernor() {
+        require(
+            governanceController.isGovernor(msg.sender) ||
+                msg.sender == governanceController.governor(),
+            "Not governor"
+        );
+        _;
+    }
 
-  /// @notice Sets the reserve ratio (in 1e18 scale, e.g., 1e18 = 100%)
-  /// @param ratio The new reserve ratio value
-  function setReserveRatio(uint256 ratio) external onlyOwner {
-    require(ratio <= 1e20, "Ratio too high"); // arbitrary sanity limit (10,000%)
-    require(ratio > 0, "Ratio must be positive");
-    require(ratio != _reserveRatio, "Same ratio");
-    _reserveRatio = ratio;
-    emit ReserveRatioUpdated(ratio);
-  }
+    constructor(address _governanceController, address _reserveRegistry) {
+        require(_governanceController != address(0), "Invalid governance");
+        require(_reserveRegistry != address(0), "Invalid registry");
 
+        governanceController = IGovernanceController(_governanceController);
+        reserveRegistry = IReserveRegistry(_reserveRegistry);
 
-  /// @notice Returns the current reserve ratio
-  /// @return Reserve ratio in 18-decimal fixed-point format
-  function reserveRatio() external view returns (uint256) {
-    return _reserveRatio;
-  }
+        owner = msg.sender;
 
-  /// @notice Allows ownership transfer
-  /// @param newOwner Address of the new owner
-  function transferOwnership(address newOwner) external onlyOwner {
-    require(newOwner != address(0), "Zero address");
-    owner = newOwner;
-  }
+        emit OwnershipTransferred(address(0), msg.sender);
+        emit ReserveRegistryUpdated(address(0), _reserveRegistry);
+    }
+
+    /// @notice Update the canonical registry this oracle reports to
+    /// @dev Governor-controlled to prevent redirection attacks
+    function setReserveRegistry(address newRegistry) external onlyGovernor {
+        require(newRegistry != address(0), "Invalid registry");
+        address old = address(reserveRegistry);
+        reserveRegistry = IReserveRegistry(newRegistry);
+        emit ReserveRegistryUpdated(old, newRegistry);
+    }
+
+    /// @notice Rotate oracle operator key
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Invalid owner");
+        address old = owner;
+        owner = newOwner;
+        emit OwnershipTransferred(old, newOwner);
+    }
+
+    /// @notice Publish a new reserve ratio into the canonical registry
+    /// @dev In production this would follow off-chain audits / zk attestations
+    function reportReserveRatio(uint256 ratio) external onlyOwner {
+        reserveRegistry.setReserveRatio(ratio);
+        emit ReserveRatioReported(ratio, msg.sender);
+    }
 }

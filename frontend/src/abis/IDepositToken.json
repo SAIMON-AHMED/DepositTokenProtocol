@@ -3,6 +3,6 @@
   "function mint(address,uint256,bytes)",
   "function redeem(uint256)",
   "function setGovernanceController(address)",
-  "function setReserveOracle(address)",
+  "function setReserveRegistry(address)",
   "function setVerifier(address)"
 ]

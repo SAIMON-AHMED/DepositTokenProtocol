@@ -3,45 +3,56 @@ const { ethers } = require("hardhat");
 
 describe("DepositTokenProtocol Deployment", function () {
   let deployer;
-  let verifier, oracle, governance, token;
+  let verifier, governance, registry, token;
 
-  before(async function () {
+  const TOKEN_NAME = "Deposit USD";
+  const TOKEN_SYMBOL = "dUSD";
+  const INITIAL_RATIO = ethers.parseEther("1.0");
+
+  beforeEach(async function () {
     [deployer] = await ethers.getSigners();
 
+    // zk verifier (mock)
     const Verifier = await ethers.getContractFactory("zkVerifierMock");
     verifier = await Verifier.deploy(true);
     await verifier.waitForDeployment();
 
-    const Oracle = await ethers.getContractFactory("ReserveOracle");
-    oracle = await Oracle.deploy();
-    await oracle.waitForDeployment();
-    await oracle.setReserveRatio(ethers.parseEther("1.0"));
-
+    // governance
     const Governance = await ethers.getContractFactory("GovernanceController");
     governance = await Governance.deploy(deployer.address);
     await governance.waitForDeployment();
 
+    // canonical reserve state (registry)
+    const Registry = await ethers.getContractFactory("ReserveRegistry");
+    registry = await Registry.deploy(governance.target, INITIAL_RATIO);
+    await registry.waitForDeployment();
+
+    // make deployer an explicit reporter for deterministic tests (safe if already reporter)
+    await registry.connect(deployer).setReporter(deployer.address, true);
+
+    // deposit token
     const Token = await ethers.getContractFactory("DepositToken");
     token = await Token.deploy(
-      "Deposit USD",
-      "dUSD",
+      TOKEN_NAME,
+      TOKEN_SYMBOL,
       verifier.target,
-      oracle.target,
+      registry.target,
       governance.target
     );
     await token.waitForDeployment();
 
-    await governance.setDepositToken(token.target);
+    // link governance -> token
+    await governance.connect(deployer).setDepositToken(token.target);
   });
-  
-  it("should deploy verifier, oracle, governance, and token", async function () {
+
+  it("should deploy verifier, governance, registry, and token", async function () {
     expect(await verifier.valid()).to.equal(true);
-    expect(await oracle.reserveRatio()).to.equal(
-      ethers.parseEther("1.0")
-    );
+
+    expect(await registry.reserveRatio()).to.equal(INITIAL_RATIO);
     expect(await governance.isPaused()).to.equal(false);
-    expect(await token.name()).to.equal("Deposit USD");
-    expect(await token.symbol()).to.equal("dUSD");
+
+    expect(await token.name()).to.equal(TOKEN_NAME);
+    expect(await token.symbol()).to.equal(TOKEN_SYMBOL);
   });
 
   it("should link governance with token", async function () {
@@ -49,7 +60,9 @@ describe("DepositTokenProtocol Deployment", function () {
   });
 
   it("should have deployer as governor", async function () {
-    expect(await governance.governorAddress()).to.equal(deployer.address);
+    const gov = await governance.governor(); 
+
+    expect(gov).to.equal(deployer.address);
     expect(await governance.isGovernor(deployer.address)).to.equal(true);
   });
 });

@@ -2,84 +2,139 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "./interfaces/IReserveOracle.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+import "./interfaces/IReserveRegistry.sol";
 import "./interfaces/IVerifier.sol";
 import "./interfaces/IGovernanceController.sol";
 
-contract DepositToken is ERC20Permit {
-  IReserveOracle public reserveOracle;
-  IVerifier public verifier;
-  IGovernanceController public governanceController;
+contract DepositToken is ERC20Permit, ReentrancyGuard {
+    IReserveRegistry public reserveRegistry;
+    IVerifier public verifier;
+    IGovernanceController public governanceController;
 
-  uint256 public constant KAPPA = 1e18; // Reserve ratio threshold (1.0 in 18 decimals)
+    // Reserve ratio threshold (1.0 in 18 decimals)
+    uint256 public constant KAPPA = 1e18;
 
-  event Mint(address indexed to, uint256 amount);
-  event Redeem(address indexed from, uint256 amount);
-  event Paused();
-  bool public paused;
+    // Issuer/minter allowlist (keeps transfers unrestricted)
+    mapping(address => bool) public isMinter;
 
-  /// @notice Constructor to initialize the deposit token
-  /// @param name Name of the token
-  /// @param symbol Symbol of the token
-  /// @param _verifier Address of the zk-KYC verifier contract
-  /// @param _reserveOracle Address of the reserve oracle contract
-  /// @param _governanceController Address of the governance controller contract
-  /// @dev Initializes the ERC20 token with name and symbol, and sets the verifier,
-  /// reserve oracle, and governance controller addresses.
-  constructor(
-    string memory name,
-    string memory symbol,
-    address _verifier,
-    address _reserveOracle,
-    address _governanceController
-  ) ERC20(name, symbol) ERC20Permit(name) {
-    verifier = IVerifier(_verifier);
-    reserveOracle = IReserveOracle(_reserveOracle);
-    governanceController = IGovernanceController(_governanceController);
-  }
+    event Mint(address indexed to, uint256 amount);
+    event Redeem(address indexed from, uint256 amount);
 
-  modifier onlyWhenNotPaused() {
-    require(!governanceController.isPaused(), "Protocol is paused");
-    _;
-  }
+    // Emitted when minting is blocked due to reserves below KAPPA
+    event ReserveBreach(uint256 ratio);
 
-  function mint(
-    address to,
-    uint256 amount,
-    bytes calldata zkProof
-  ) external onlyWhenNotPaused {
-    require(verifier.verifyProof(zkProof), "Invalid zk-KYC proof");
+    event MinterUpdated(address indexed minter, bool allowed);
+    event VerifierUpdated(address indexed newVerifier);
+    event ReserveRegistryUpdated(address indexed newRegistry);
+    event GovernanceControllerUpdated(address indexed newGovernance);
 
-    uint256 ratio = reserveOracle.reserveRatio(); 
-    if (ratio < KAPPA) {
-      paused = true;
-      emit Paused();
-      revert("Paused: Reserve below threshold");
+    modifier onlyWhenNotPaused() {
+        require(!governanceController.isPaused(), "Protocol is paused");
+        _;
     }
 
-    _mint(to, amount);
-    emit Mint(to, amount);
-  }
+    modifier onlyGovernor() {
+        bool ok = (msg.sender == governanceController.governor()) ||
+            governanceController.isGovernor(msg.sender);
+        require(ok, "Not governor");
+        _;
+    }
 
+    modifier onlyMinter() {
+        require(isMinter[msg.sender], "Not minter");
+        _;
+    }
 
-  function redeem(uint256 amount) external onlyWhenNotPaused {
-    _burn(msg.sender, amount);
-    emit Redeem(msg.sender, amount);
-    // In a full implementation, this would initiate off-chain fiat redemption
-  }
+    /// @notice Constructor to initialize the deposit token
+    /// @param name Name of the token
+    /// @param symbol Symbol of the token
+    /// @param _verifier Address of the zk-KYC verifier contract
+    /// @param _reserveRegistry Address of the reserve registry contract
+    /// @param _governanceController Address of the governance controller contract
+    constructor(
+        string memory name,
+        string memory symbol,
+        address _verifier,
+        address _reserveRegistry,
+        address _governanceController
+    ) ERC20(name, symbol) ERC20Permit(name) {
+        require(_verifier != address(0), "Invalid verifier");
+        require(_reserveRegistry != address(0), "Invalid reserve registry");
+        require(_governanceController != address(0), "Invalid governance");
 
-  function setVerifier(address newVerifier) external {
-    require(msg.sender == governanceController.governor(), "Not governor");
-    verifier = IVerifier(newVerifier);
-  }
+        verifier = IVerifier(_verifier);
+        reserveRegistry = IReserveRegistry(_reserveRegistry);
+        governanceController = IGovernanceController(_governanceController);
 
-  function setReserveOracle(address newOracle) external {
-    require(governanceController.isGovernor(msg.sender), "Not governor");
-    reserveOracle = IReserveOracle(newOracle);
-  }
+        // Reasonable default: deployer starts as minter (often the initial issuer in tests)
+        isMinter[msg.sender] = true;
+        emit MinterUpdated(msg.sender, true);
+    }
 
-  function setGovernanceController(address newGov) external {
-    require(governanceController.isGovernor(msg.sender), "Not governor");
-    governanceController = IGovernanceController(newGov);
-  }
+    function mint(
+        address to,
+        uint256 amount,
+        bytes calldata zkProof
+    ) external onlyWhenNotPaused onlyMinter {
+        require(to != address(0), "Invalid to");
+        require(amount > 0, "Invalid amount");
+
+        // zk-KYC / membership verification
+        require(verifier.verifyProof(zkProof), "Invalid zk-KYC proof");
+
+        // Reserve safety check
+        uint256 ratio = reserveRegistry.reserveRatio();
+        if (ratio < KAPPA) {
+            emit ReserveBreach(ratio);
+            revert("Paused: Reserve below threshold");
+        }
+
+        _mint(to, amount);
+        emit Mint(to, amount);
+    }
+
+    function redeem(uint256 amount) external onlyWhenNotPaused nonReentrant {
+        require(amount > 0, "Invalid amount");
+        _burn(msg.sender, amount);
+        emit Redeem(msg.sender, amount);
+        // Off-chain fiat settlement would be triggered by events in a full implementation
+    }
+
+    /// @notice Allow or revoke a minter (issuer) address
+    function setMinter(address minter, bool allowed) external onlyGovernor {
+        require(minter != address(0), "Invalid minter");
+        isMinter[minter] = allowed;
+        emit MinterUpdated(minter, allowed);
+    }
+
+    function setVerifier(address newVerifier) external onlyGovernor {
+        require(newVerifier != address(0), "Invalid verifier");
+        verifier = IVerifier(newVerifier);
+        emit VerifierUpdated(newVerifier);
+    }
+
+    function setReserveRegistry(address newRegistry) external onlyGovernor {
+        require(newRegistry != address(0), "Invalid reserve registry");
+        reserveRegistry = IReserveRegistry(newRegistry);
+        emit ReserveRegistryUpdated(newRegistry);
+    }
+
+    function setGovernanceController(address newGov) external onlyGovernor {
+        require(newGov != address(0), "Invalid governance");
+        governanceController = IGovernanceController(newGov);
+        emit GovernanceControllerUpdated(newGov);
+    }
+
+    /// @notice Allow anyone to trigger pause if reserves fall below KAPPA
+    /// @dev This provides an automatic circuit breaker when reserve backing deteriorates
+    function forcePause() external {
+        uint256 ratio = reserveRegistry.reserveRatio();
+        require(ratio < KAPPA, "Reserve ratio sufficient");
+        require(!governanceController.isPaused(), "Already paused");
+
+        // Pause through governance controller
+        governanceController.pause();
+    }
 }

@@ -1,0 +1,14 @@
+[
+  "constructor(address,uint256)",
+  "event GovernanceControllerUpdated(address indexed,address indexed)",
+  "event ReporterUpdated(address indexed,bool)",
+  "event ReserveRatioUpdated(uint256,uint256)",
+  "function MAX_RATIO() view returns (uint256)",
+  "function governanceController() view returns (address)",
+  "function isReporter(address) view returns (bool)",
+  "function lastUpdated() view returns (uint256)",
+  "function reserveRatio() view returns (uint256)",
+  "function setGovernanceController(address)",
+  "function setReporter(address,bool)",
+  "function setReserveRatio(uint256)"
+]

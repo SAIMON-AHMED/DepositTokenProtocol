@@ -3,7 +3,9 @@ const { ethers } = require("hardhat");
 
 describe("GovernanceController", function () {
   let deployer, other;
-  let governance, tokenMock;
+  let governance, tokenMock, verifier, registry;
+
+  const INITIAL_RATIO = ethers.parseEther("1.0");
 
   beforeEach(async function () {
     [deployer, other] = await ethers.getSigners();
@@ -13,26 +15,29 @@ describe("GovernanceController", function () {
     await governance.waitForDeployment();
 
     const Verifier = await ethers.getContractFactory("zkVerifierMock");
-    const verifier = await Verifier.deploy(true);
+    verifier = await Verifier.deploy(true);
     await verifier.waitForDeployment();
 
-    const Oracle = await ethers.getContractFactory("ReserveOracle");
-    const oracle = await Oracle.deploy();
-    await oracle.waitForDeployment();
+    // Use ReserveRegistry (canonical reserve state)
+    const Registry = await ethers.getContractFactory("ReserveRegistry");
+    registry = await Registry.deploy(governance.target, INITIAL_RATIO);
+    await registry.waitForDeployment();
+
+    // Make deployer an explicit reporter (deterministic)
+    await registry.connect(deployer).setReporter(deployer.address, true);
 
     const TokenMock = await ethers.getContractFactory("DepositToken");
     tokenMock = await TokenMock.deploy(
       "MockToken",
       "MTK",
       verifier.target,
-      oracle.target,
+      registry.target,
       governance.target
     );
     await tokenMock.waitForDeployment();
 
-    await governance.setDepositToken(tokenMock.target);
+    await governance.connect(deployer).setDepositToken(tokenMock.target);
   });
-  
 
   it("should initialize with correct governor", async function () {
     expect(await governance.governorAddress()).to.equal(deployer.address);
@@ -40,10 +45,10 @@ describe("GovernanceController", function () {
   });
 
   it("should allow governor to pause and unpause", async function () {
-    await governance.pause();
+    await governance.connect(deployer).pause();
     expect(await governance.isPaused()).to.be.true;
 
-    await governance.unpause();
+    await governance.connect(deployer).unpause();
     expect(await governance.isPaused()).to.be.false;
   });
 
@@ -55,7 +60,7 @@ describe("GovernanceController", function () {
 
   it("should update deposit token by governor", async function () {
     const newToken = ethers.Wallet.createRandom().address;
-    await governance.setDepositToken(newToken);
+    await governance.connect(deployer).setDepositToken(newToken);
     expect(await governance.depositToken()).to.equal(newToken);
   });
 

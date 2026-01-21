@@ -1,8 +1,12 @@
 [
-  "constructor()",
-  "event ReserveRatioUpdated(uint256)",
+  "constructor(address,address)",
+  "event OwnershipTransferred(address indexed,address indexed)",
+  "event ReserveRatioReported(uint256,address indexed)",
+  "event ReserveRegistryUpdated(address indexed,address indexed)",
+  "function governanceController() view returns (address)",
   "function owner() view returns (address)",
-  "function reserveRatio() view returns (uint256)",
-  "function setReserveRatio(uint256)",
+  "function reportReserveRatio(uint256)",
+  "function reserveRegistry() view returns (address)",
+  "function setReserveRegistry(address)",
   "function transferOwnership(address)"
 ]
