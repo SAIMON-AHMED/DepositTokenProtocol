@@ -2,20 +2,20 @@
 
 **DepositTokenProtocol** is a production-ready Ethereum smart contract system for institutional deposit tokens with zk-KYC verification, reserve-backed issuance, and governance-controlled access. Fully aligned with academic research on secure tokenized deposit architectures.
 
-## 🎯 Key Features
+## Key Features
 
-- ✅ **zk-KYC Verification** - Zero-knowledge proof validation before minting
-- ✅ **Reserve Ratio Enforcement** - KAPPA threshold prevents over-issuance (min 1.0x backing)
-- ✅ **Emergency Pause Mechanism** - Anyone can trigger `forcePause()` if reserves drop
-- ✅ **Governance Control** - Governor-managed system with secure access control
-- ✅ **ERC20 Compatible** - Full token standard with permit support
-- ✅ **Reentrancy Protection** - Safe against reentrancy attacks
-- ✅ **Comprehensive Testing** - 29 passing tests covering all scenarios
-- ✅ **Production Gas Optimized** - Optimized for mainnet deployment
+- zk-KYC Verification - Zero-knowledge proof validation before minting
+- Reserve Ratio Enforcement - KAPPA threshold prevents over-issuance (minimum 1.0x backing)
+- Emergency Pause Mechanism - Anyone can trigger forcePause() if reserves drop
+- Governance Control - Governor-managed system with secure access control
+- ERC20 Compatible - Full token standard with permit support
+- Reentrancy Protection - Safe against reentrancy attacks
+- Comprehensive Testing - 29 passing tests covering all scenarios
+- Production Gas Optimized - Optimized for mainnet deployment
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
-This protocol consists of **five core components**:
+This protocol consists of five core components:
 
 ### Smart Contracts
 
@@ -31,7 +31,7 @@ This protocol consists of **five core components**:
 - **IVerifier** - Interface for integrating zk proof verification
 - **MathLib** - Safe fixed-point math utilities (18-decimal precision)
 
-## 📦 Directory Structure
+## Directory Structure
 
 ```
 contracts/
@@ -86,15 +86,15 @@ docs/
 └── PUBLICATION_READINESS.md      # Publication assessment
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 18 or higher
 - MetaMask browser extension
 - Git
 
-### 1️⃣ Install & Deploy
+### Step 1: Install and Deploy
 
 ```bash
 git clone https://github.com/SAIMON-AHMED/DepositTokenProtocol.git
@@ -108,7 +108,7 @@ npx hardhat node
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
-### 2️⃣ Run Frontend
+### Step 2: Run Frontend
 
 ```bash
 # Terminal 3
@@ -117,17 +117,17 @@ npm install
 npm start
 ```
 
-**Open:** http://localhost:3000
+Open http://localhost:3000 in your browser.
 
-### 3️⃣ Connect MetaMask
+### Step 3: Connect MetaMask
 
 1. Add Hardhat network to MetaMask:
-   - RPC: `http://127.0.0.1:8545`
-   - Chain ID: `1337`
+   - RPC: http://127.0.0.1:8545
+   - Chain ID: 1337
 2. Import test account from Terminal 1 output
 3. Click "Connect Wallet"
 
-## ✅ Testing
+## Testing
 
 ```bash
 # Compile contracts
@@ -145,50 +145,50 @@ REPORT_GAS=true npx hardhat test
 
 ### Test Coverage
 
-| Component            | Tests  | Status             |
-| -------------------- | ------ | ------------------ |
-| DepositToken Core    | 7      | ✅ Passing         |
-| GovernanceController | 5      | ✅ Passing         |
-| ReserveRegistry      | 5      | ✅ Passing         |
-| ReserveOracle        | 5      | ✅ Passing         |
-| zkVerifierMock       | 3      | ✅ Passing         |
-| Integration Flows    | 6      | ✅ Passing         |
-| Deployment           | 3      | ✅ Passing         |
-| **TOTAL**            | **29** | **✅ ALL PASSING** |
+| Component | Tests | Status |
+|-----------|-------|--------|
+| DepositToken Core | 7 | Passing |
+| GovernanceController | 5 | Passing |
+| ReserveRegistry | 5 | Passing |
+| ReserveOracle | 5 | Passing |
+| zkVerifierMock | 3 | Passing |
+| Integration Flows | 6 | Passing |
+| Deployment | 3 | Passing |
+| TOTAL | 29 | ALL PASSING |
 
-## 📖 Usage Guide
+## Usage Guide
 
 ### For Developers
 
 1. **Local Testing:** Follow Quick Start above
-2. **Integration:** Import ABIs from `frontend/src/abis/`
-3. **Deployment:** Use `scripts/deploy.js` as template for your network
-4. **Customization:** Modify parameters in `contracts/` before deployment
+2. **Integration:** Import ABIs from frontend/src/abis/
+3. **Deployment:** Use scripts/deploy.js as template for your network
+4. **Customization:** Modify parameters in contracts/ before deployment
 
 ### For Researchers
 
 - **Paper Integration:** Reference implementation for academic work
-- **Architecture Details:** See `IMPLEMENTATION_SUMMARY.md`
-- **Publication Ready:** See `PUBLICATION_READINESS.md`
+- **Architecture Details:** See IMPLEMENTATION_SUMMARY.md
+- **Publication Ready:** See PUBLICATION_READINESS.md
 - **Code Alignment:** All features documented in TESTING.md
 
 ### For Users (Via Frontend)
 
-1. **Mint Tokens:** Provide zk-KYC proof + amount
+1. **Mint Tokens:** Provide zk-KYC proof and amount
 2. **Redeem Tokens:** Burn tokens to receive backing
 3. **Monitor Reserves:** Real-time ratio updates
-4. **Emergency Control:** Force pause if reserves critical
+4. **Emergency Control:** Force pause if reserves become critical
 
-## 🔐 Security Features
+## Security Features
 
-- ✅ **Input Validation** - Zero-address checks, bounds checking
-- ✅ **Access Control** - onlyGovernor, onlyMinter, onlyReporter modifiers
-- ✅ **Reentrancy Guard** - Protection on sensitive functions
-- ✅ **Event Logging** - All state changes emit events
-- ✅ **Emergency Circuit Breaker** - forcePause() when reserves critical
-- ✅ **Reserve Bounds** - MAX_RATIO prevents nonsensical values
-- ✅ **Non-Replayable Proofs** - Nonce tracking on transactions
-- ✅ **Safe Math** - OpenZeppelin vetted libraries
+- Input Validation - Zero-address checks and bounds checking
+- Access Control - onlyGovernor, onlyMinter, onlyReporter modifiers
+- Reentrancy Guard - Protection on sensitive functions
+- Event Logging - All state changes emit events
+- Emergency Circuit Breaker - forcePause() when reserves critical
+- Reserve Bounds - MAX_RATIO prevents nonsensical values
+- Non-Replayable Proofs - Nonce tracking on transactions
+- Safe Math - OpenZeppelin vetted libraries
 
 ### Audit Notes
 
@@ -197,16 +197,16 @@ REPORT_GAS=true npx hardhat test
 - zkProof verification depends on circuit implementation
 - Oracle reliability depends on data source security
 
-## 📚 Documentation
+## Documentation
 
-- **[QUICK_START.md](QUICK_START.md)** - 3-step local setup
-- **[FRONTEND_GUIDE.md](FRONTEND_GUIDE.md)** - Complete frontend usage
-- **[TESTING.md](TESTING.md)** - Test specifications and coverage
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - All changes made
-- **[PUBLICATION_READINESS.md](PUBLICATION_READINESS.md)** - Publication assessment
-- **[GITHUB_PUBLISH.md](GITHUB_PUBLISH.md)** - Publishing to GitHub
+- QUICK_START.md - 3-step local setup
+- FRONTEND_GUIDE.md - Complete frontend usage
+- TESTING.md - Test specifications and coverage
+- IMPLEMENTATION_SUMMARY.md - All changes made
+- PUBLICATION_READINESS.md - Publication assessment
+- GITHUB_PUBLISH.md - Publishing to GitHub
 
-## 🧪 Benchmarking
+## Benchmarking
 
 ```bash
 npx hardhat run scripts/benchmark.js --network localhost
@@ -214,11 +214,11 @@ npx hardhat run scripts/benchmark.js --network localhost
 
 Typical gas costs:
 
-- Mint: ~150,000 gas
-- Redeem: ~120,000 gas
-- forcePause: ~40,000 gas
+- Mint: approximately 150,000 gas
+- Redeem: approximately 120,000 gas
+- forcePause: approximately 40,000 gas
 
-## 📋 Paper Reference
+## Paper Reference
 
 **Academic Paper:** "A Secure Smart Contract Architecture for Institutional Deposit Tokens on Ethereum"
 
@@ -229,7 +229,7 @@ This implementation serves as the reference code for the above research paper, d
 - Cross-chain interoperability architecture
 - zkOracle integration points
 
-## 🔗 Deployment
+## Deployment
 
 ### Local Development
 
@@ -252,30 +252,30 @@ npx hardhat run scripts/deploy.js --network sepolia
 npx hardhat run scripts/deploy.js --network mainnet
 ```
 
-## 📄 License
+## License
 
 MIT License © 2025 Saimon Ahmed and contributors
 
-See [LICENSE](LICENSE) for details.
+See LICENSE for details.
 
-## 👤 Author
+## Author
 
 **Saimon Ahmed**
 
 - Email: sahmed25@sfc.edu
-- GitHub: [@SAIMON-AHMED](https://github.com/SAIMON-AHMED)
-- LinkedIn: [saimon-ahmed](https://linkedin.com/in/saimon-ahmed)
+- GitHub: SAIMON-AHMED (https://github.com/SAIMON-AHMED)
+- LinkedIn: saimon-ahmed (https://linkedin.com/in/saimon-ahmed)
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please feel free to submit issues and pull requests.
+Contributions are welcome. Please feel free to submit issues and pull requests.
 
 For questions or collaboration:
 
 - Open an issue on GitHub
 - Email: sahmed25@sfc.edu
 
-## 📖 Citation
+## Citation
 
 If you use this code in academic work, please cite:
 
@@ -289,6 +289,6 @@ If you use this code in academic work, please cite:
 }
 ```
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This code is provided as-is for research and educational purposes. Users assume all risks. Proper security audits are required before production use on live networks.
