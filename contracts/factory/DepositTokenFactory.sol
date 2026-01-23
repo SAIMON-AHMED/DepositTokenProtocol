@@ -23,10 +23,10 @@ contract DepositTokenFactory {
     string memory name,
     string memory symbol,
     address verifier,
-    address reserveOracle,
+    address reserveRegistry,
     address governanceController
   ) external onlyOwner returns (address tokenAddr) {
-    DepositToken token = new DepositToken(name, symbol, verifier, reserveOracle, governanceController);
+    DepositToken token = new DepositToken(name, symbol, verifier, reserveRegistry, governanceController);
     tokenAddr = address(token);
     allTokens.push(tokenAddr);
 
