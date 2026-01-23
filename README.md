@@ -79,14 +79,8 @@ test/
 └── integration/
     └── DepositTokenFlow.test.js  # End-to-end integration tests
 
-docs/
-├── QUICK_START.md                # Quick setup guide
-├── FRONTEND_GUIDE.md             # Frontend usage guide
-├── GITHUB_PUBLISH.md             # Publishing instructions
-└── PUBLICATION_READINESS.md      # Publication assessment
 ```
 
-## Quick Start
 
 ### Prerequisites
 
