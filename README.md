@@ -23,13 +23,14 @@ This protocol consists of five core components:
 2. **ReserveRegistry** - Canonical on-chain reserve ratio state (reporters publish updates)
 3. **GovernanceController** - Manages pause state and protocol configuration
 4. **ReserveOracle** - Reporter that publishes reserve attestations to ReserveRegistry
-5. **zkVerifierMock** - Zero-knowledge proof verifier interface (integrates with zk circuits)
+5. **zkVerifierMock** - Mock zero-knowledge proof verifier for testing (see note below)
+
+> **Note on zk-KYC Verifier:** For reproducible testing and CI/CD, the protocol includes a configurable mock verifier contract. In production deployment, this module is replaced by a generated zk-SNARK verifier contract (e.g., Groth16) implementing the same `IVerifier` interface. The protocol architecture ensures seamless swapping between mock and real verifiers via the `setVerifier()` governance function.
 
 ### Supporting Components
 
-- **RedemptionModule** - Handles redemption settlement (extensible for different fiat backends)
+- **RedemptionModule** - Handles redemption settlement with off-chain reference tracking
 - **IVerifier** - Interface for integrating zk proof verification
-- **MathLib** - Safe fixed-point math utilities (18-decimal precision)
 
 ## Directory Structure
 
@@ -53,12 +54,9 @@ contracts/
 │   ├── IReserveRegistry.sol
 │   ├── IGovernanceController.sol
 │   ├── IReserveOracle.sol
-│   ├── IVerifier.sol
-│   └── IReserveOracle.sol
-└── libs/
-    └── MathLib.sol               # Fixed-point math utilities
-
-frontend/
+│   └── IVerifier.sol
+└── factory/
+    └── DepositTokenFactory.sol   # Token creation factory
 ├── src/
 │   ├── App.js                    # React dashboard with Web3 integration
 │   ├── abis/                     # Contract ABIs for frontend
@@ -80,7 +78,6 @@ test/
     └── DepositTokenFlow.test.js  # End-to-end integration tests
 
 ```
-
 
 ### Prerequisites
 
@@ -190,7 +187,6 @@ REPORT_GAS=true npx hardhat test
 - Consider professional security audit before production
 - zkProof verification depends on circuit implementation
 - Oracle reliability depends on data source security
-
 
 ## Benchmarking
 

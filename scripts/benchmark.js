@@ -16,6 +16,7 @@ async function main() {
 
   console.log("Deploying contracts...");
 
+  const ReserveRegistry = await ethers.getContractFactory("ReserveRegistry");
   const ReserveOracle = await ethers.getContractFactory("ReserveOracle");
   const GovernanceController = await ethers.getContractFactory(
     "GovernanceController"
@@ -23,16 +24,32 @@ async function main() {
   const VerifierMock = await ethers.getContractFactory("zkVerifierMock");
   const DepositToken = await ethers.getContractFactory("DepositToken");
 
-  const reserveOracle = await ReserveOracle.deploy();
-  await reserveOracle.waitForDeployment();
-  console.log("ReserveOracle deployed at:", await reserveOracle.getAddress());
-
   const govController = await GovernanceController.deploy(owner.address);
   await govController.waitForDeployment();
   console.log(
     "GovernanceController deployed at:",
     await govController.getAddress()
   );
+
+  const reserveRegistry = await ReserveRegistry.deploy(
+    await govController.getAddress(),
+    ethers.parseUnits("1.0001", 18) // 100.01% initial ratio
+  );
+  await reserveRegistry.waitForDeployment();
+  console.log(
+    "ReserveRegistry deployed at:",
+    await reserveRegistry.getAddress()
+  );
+
+  const reserveOracle = await ReserveOracle.deploy(
+    await govController.getAddress(),
+    await reserveRegistry.getAddress()
+  );
+  await reserveOracle.waitForDeployment();
+  console.log("ReserveOracle deployed at:", await reserveOracle.getAddress());
+
+  // Authorize the oracle as a reporter
+  await reserveRegistry.setReporter(await reserveOracle.getAddress(), true);
 
   const verifier = await VerifierMock.deploy(true);
   await verifier.waitForDeployment();
@@ -42,7 +59,7 @@ async function main() {
     "dUSD",
     "dUSD",
     await verifier.getAddress(),
-    await reserveOracle.getAddress(),
+    await reserveRegistry.getAddress(),
     await govController.getAddress()
   );
   await depositToken.waitForDeployment();
@@ -50,9 +67,6 @@ async function main() {
 
   // Setup links
   await govController.setDepositToken(await depositToken.getAddress());
-
-  // Initial reserve ratio must be set to something non-zero
-  await reserveOracle.setReserveRatio(ethers.parseUnits("1.0001", 18)); // 100.01%
 
   console.log("\n--- Starting Benchmarks ---");
 
@@ -79,15 +93,15 @@ async function main() {
     "Transferring 10 dUSD"
   );
 
-  // ReserveOracle: Set a new ratio each time to avoid "Same ratio" revert
+  // ReserveOracle: Set a new ratio each time
   let baseRatio = ethers.parseUnits("1.05", 18);
   let counter = 0;
 
   await averageGasUsage(async () => {
     counter++;
     const variedRatio = baseRatio + BigInt(counter); // tiny delta
-    return reserveOracle.setReserveRatio(variedRatio);
-  }, "Updating ReserveOracle ratio");
+    return reserveOracle.reportReserveRatio(variedRatio);
+  }, "Updating reserve ratio via ReserveOracle");
 
   // GovernanceController: Change governor
   await averageGasUsage(

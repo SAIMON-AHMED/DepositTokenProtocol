@@ -35,6 +35,7 @@ module.exports = {
     runOnCompile: true,
     only: [
       "DepositToken",
+      "ReserveRegistry",
       "ReserveOracle",
       "GovernanceController",
       "zkVerifierMock",
