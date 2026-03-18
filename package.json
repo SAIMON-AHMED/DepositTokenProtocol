@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.2",
+    "@semaphore-protocol/contracts": "^4.14.2",
+    "@semaphore-protocol/core": "^4.14.2",
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",
     "styled-components": "^6.1.19"

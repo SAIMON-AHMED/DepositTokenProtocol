@@ -20,7 +20,6 @@ describe("zkVerifierMock", function () {
   });
 
   it("should allow only the owner to set valid (if access control is added)", async function () {
-    // This test will always pass since there is no access control in the contract
     await verifier.setValid(false);
     expect(await verifier.valid()).to.equal(false);
     await verifier.setValid(true);

@@ -5,11 +5,7 @@ import "../interfaces/IReserveRegistry.sol";
 import "../interfaces/IGovernanceController.sol";
 
 /// @title ReserveOracle
-/// @notice Reporter/adapter that publishes reserve attestations into the canonical ReserveRegistry
-/// @dev This contract does NOT enforce minting logic. It only reports reserve state.
-///      ReserveOracle must be authorized as a reporter on ReserveRegistry by governance
-///      before it can call setReserveRatio(). DepositToken reads from ReserveRegistry,
-///      not directly from ReserveOracle.
+/// @notice Reporter adapter that publishes reserve attestations to ReserveRegistry.
 contract ReserveOracle {
     IGovernanceController public governanceController;
     IReserveRegistry public reserveRegistry;
@@ -54,7 +50,6 @@ contract ReserveOracle {
     }
 
     /// @notice Update the canonical registry this oracle reports to
-    /// @dev Governor-controlled to prevent redirection attacks
     function setReserveRegistry(address newRegistry) external onlyGovernor {
         require(newRegistry != address(0), "Invalid registry");
         address old = address(reserveRegistry);
@@ -70,10 +65,10 @@ contract ReserveOracle {
         emit OwnershipTransferred(old, newOwner);
     }
 
-    /// @notice Publish a new reserve ratio into the canonical registry
-    /// @dev In production this would follow off-chain audits / zk attestations
+    /// @notice Publish a new reserve ratio into the canonical registry using the
+    ///         multi-oracle aggregation path (submitReserveRatio).
     function reportReserveRatio(uint256 ratio) external onlyOwner {
-        reserveRegistry.setReserveRatio(ratio);
+        reserveRegistry.submitReserveRatio(ratio);
         emit ReserveRatioReported(ratio, msg.sender);
     }
 }

@@ -1,6 +1,12 @@
 [
+  "function checkEmergencyExpiry()",
+  "function emergencyPause()",
   "function governor() view returns (address)",
+  "function guardian() view returns (address)",
+  "function isDepositToken(address) view returns (bool)",
   "function isGovernor(address) view returns (bool)",
   "function isPaused() view returns (bool)",
-  "function pause()"
+  "function pauseType1()",
+  "function protocolState() view returns (uint8)",
+  "function unpause()"
 ]

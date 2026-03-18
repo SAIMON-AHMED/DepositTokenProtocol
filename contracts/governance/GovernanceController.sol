@@ -1,60 +1,165 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+/// @title GovernanceController
+/// @notice Protocol state machine with Type 1/2 pause mechanisms.
 contract GovernanceController {
-  address public owner;
-  address public governor;
-  address public depositToken;
-  bool public paused;
+    enum ProtocolState {
+        Active,
+        Paused,
+        EmergencyPaused
+    }
 
-  constructor(address _owner) {
-    owner = _owner;
-    governor = _owner; // initially, owner is governor
-  }
+    address public owner;
+    address public governor;
+    address public guardian;
+    address public depositToken;
 
-  modifier onlyOwner() {
-    require(msg.sender == owner, "Not owner");
-    _;
-  }
+    ProtocolState public protocolState;
+    uint256 public emergencyPauseExpiry;
 
-  modifier onlyGovernor() {
-    require(msg.sender == governor, "Not governor");
-    _;
-  }
-
-  modifier onlyAuthorized() {
-    require(
-      msg.sender == owner || msg.sender == depositToken,
-      "Not authorized"
+    event ProtocolStateChanged(
+        ProtocolState indexed oldState,
+        ProtocolState indexed newState,
+        string pauseType
     );
-    _;
-  }
+    event EmergencyPauseActivated(address indexed triggeredBy, uint256 expiry);
+    event EmergencyPauseExpired();
+    event GuardianUpdated(
+        address indexed oldGuardian,
+        address indexed newGuardian
+    );
+    event GovernorUpdated(
+        address indexed oldGovernor,
+        address indexed newGovernor
+    );
+    event DepositTokenUpdated(address indexed token);
 
-  function setDepositToken(address _depositToken) external onlyGovernor {
-    depositToken = _depositToken;
-  }
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        _;
+    }
 
-  function pause() external onlyGovernor {
-    paused = true;
-  }
+    modifier onlyGovernor() {
+        require(msg.sender == governor, "Not governor");
+        _;
+    }
 
-  function unpause() external onlyOwner {
-    paused = false;
-  }
+    modifier onlyGuardian() {
+        require(msg.sender == guardian, "Not guardian");
+        _;
+    }
 
-  function isPaused() external view returns (bool) {
-    return paused;
-  }
+    modifier onlyDepositToken() {
+        require(msg.sender == depositToken, "Not deposit token");
+        _;
+    }
 
-  function isGovernor(address _addr) external view returns (bool) {
-    return _addr == governor;
-  }
+    constructor(address _owner) {
+        require(_owner != address(0), "Invalid owner");
+        owner = _owner;
+        governor = _owner; // initially, owner is governor
+        protocolState = ProtocolState.Active;
+    }
 
-  function governorAddress() external view returns (address) {
-    return governor;
-  }
+    function isPaused() external view returns (bool) {
+        return protocolState != ProtocolState.Active;
+    }
 
-  function setGovernor(address newGov) external onlyOwner {
-    governor = newGov;
-  }
+    function isEmergencyPaused() external view returns (bool) {
+        return protocolState == ProtocolState.EmergencyPaused;
+    }
+
+    function isGovernor(address _addr) external view returns (bool) {
+        return _addr == governor;
+    }
+
+    function isDepositToken(address _addr) external view returns (bool) {
+        return _addr == depositToken;
+    }
+
+    function governorAddress() external view returns (address) {
+        return governor;
+    }
+
+    /// @notice Type 1 pause — called by DepositToken when reserves drop below κ_pause.
+    function pauseType1() external onlyDepositToken {
+        require(protocolState == ProtocolState.Active, "Not in Active state");
+        ProtocolState old = protocolState;
+        protocolState = ProtocolState.Paused;
+        emit ProtocolStateChanged(old, ProtocolState.Paused, "Type1-Automatic");
+    }
+
+    /// @notice Type 2 pause — guardian halts all ops for up to 72h.
+    function emergencyPause() external onlyGuardian {
+        require(
+            protocolState == ProtocolState.Active ||
+                protocolState == ProtocolState.Paused,
+            "Already in EmergencyPaused"
+        );
+        ProtocolState old = protocolState;
+        protocolState = ProtocolState.EmergencyPaused;
+        emergencyPauseExpiry = block.timestamp + 72 hours;
+        emit EmergencyPauseActivated(msg.sender, emergencyPauseExpiry);
+        emit ProtocolStateChanged(
+            old,
+            ProtocolState.EmergencyPaused,
+            "Type2-Guardian"
+        );
+    }
+
+    /// @notice Downgrades EmergencyPaused → Paused if 72h has elapsed. Callable by anyone.
+    function checkEmergencyExpiry() external {
+        require(
+            protocolState == ProtocolState.EmergencyPaused,
+            "Not in EmergencyPaused"
+        );
+        require(
+            block.timestamp >= emergencyPauseExpiry,
+            "Emergency pause not expired"
+        );
+        protocolState = ProtocolState.Paused;
+        emit EmergencyPauseExpired();
+        emit ProtocolStateChanged(
+            ProtocolState.EmergencyPaused,
+            ProtocolState.Paused,
+            "Type2-Expired"
+        );
+    }
+
+    function unpause() external onlyGovernor {
+        require(protocolState == ProtocolState.Paused, "Not in Paused state");
+        protocolState = ProtocolState.Active;
+        emit ProtocolStateChanged(
+            ProtocolState.Paused,
+            ProtocolState.Active,
+            "Unpause"
+        );
+    }
+
+    /// @notice Simple governor pause for testing / backward compat.
+    function pause() external onlyGovernor {
+        require(protocolState == ProtocolState.Active, "Not in Active state");
+        ProtocolState old = protocolState;
+        protocolState = ProtocolState.Paused;
+        emit ProtocolStateChanged(old, ProtocolState.Paused, "Governor");
+    }
+
+    function setDepositToken(address _depositToken) external onlyGovernor {
+        depositToken = _depositToken;
+        emit DepositTokenUpdated(_depositToken);
+    }
+
+    function setGuardian(address _guardian) external onlyOwner {
+        address old = guardian;
+        guardian = _guardian;
+        emit GuardianUpdated(old, _guardian);
+    }
+
+    function setGovernor(address newGov) external onlyOwner {
+        require(newGov != address(0), "Invalid governor");
+        address old = governor;
+        governor = newGov;
+        emit GovernorUpdated(old, newGov);
+    }
 }

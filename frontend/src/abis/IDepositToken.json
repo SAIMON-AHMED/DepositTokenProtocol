@@ -1,8 +1,13 @@
 [
-  "function forcePause()",
+  "function KAPPA_MINT() view returns (uint256)",
+  "function KAPPA_PAUSE() view returns (uint256)",
+  "function checkReserves()",
   "function mint(address,uint256,bytes)",
-  "function redeem(uint256)",
+  "function redeem(uint256,bytes)",
+  "function restrictedMode() view returns (bool)",
   "function setGovernanceController(address)",
+  "function setIdentityRegistry(address)",
   "function setReserveRegistry(address)",
+  "function setRestrictedMode(bool)",
   "function setVerifier(address)"
 ]

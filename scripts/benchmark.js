@@ -14,7 +14,7 @@ async function averageGasUsage(fn, label, runs = 5) {
 async function main() {
   const [owner, user] = await ethers.getSigners();
 
-  console.log("Deploying contracts...");
+  console.log("Deploying...");
 
   const ReserveRegistry = await ethers.getContractFactory("ReserveRegistry");
   const ReserveOracle = await ethers.getContractFactory("ReserveOracle");
@@ -48,7 +48,6 @@ async function main() {
   await reserveOracle.waitForDeployment();
   console.log("ReserveOracle deployed at:", await reserveOracle.getAddress());
 
-  // Authorize the oracle as a reporter
   await reserveRegistry.setReporter(await reserveOracle.getAddress(), true);
 
   const verifier = await VerifierMock.deploy(true);
@@ -65,10 +64,9 @@ async function main() {
   await depositToken.waitForDeployment();
   console.log("DepositToken deployed at:", await depositToken.getAddress());
 
-  // Setup links
   await govController.setDepositToken(await depositToken.getAddress());
 
-  console.log("\n--- Starting Benchmarks ---");
+  console.log("\n--- Benchmarks ---");
 
   const dummyProof = "0x1234";
 
@@ -78,19 +76,26 @@ async function main() {
     "Minting 100 dUSD"
   );
 
-  // Redeem 50 tokens
+  // Redeem 50 tokens (now requires zkProof per Theorem 2)
   await averageGasUsage(
-    () => depositToken.connect(user).redeem(ethers.parseEther("50")),
-    "Redeeming 50 dUSD"
+    () =>
+      depositToken.connect(user).redeem(ethers.parseEther("50"), dummyProof),
+    "Redeeming 50 dUSD (with zk-proof)"
   );
 
-  // Transfer tokens
+  // Transfer tokens (Mode A — open)
   await averageGasUsage(
     () =>
       depositToken
         .connect(user)
         .transfer(owner.address, ethers.parseEther("10")),
-    "Transferring 10 dUSD"
+    "Transferring 10 dUSD (Mode A)"
+  );
+
+  // checkReserves — permissionless reserve check (Type 1 pause trigger)
+  await averageGasUsage(
+    () => depositToken.connect(user).checkReserves(),
+    "checkReserves (no pause triggered)"
   );
 
   // ReserveOracle: Set a new ratio each time
@@ -108,6 +113,19 @@ async function main() {
     () => govController.setGovernor(user.address),
     "Changing Governor"
   );
+
+  // Emergency pause (Type 2 — guardian-initiated)
+  await govController.setGuardian(owner.address);
+  const pauseTx = await govController.emergencyPause();
+  const pauseReceipt = await pauseTx.wait();
+  console.log(
+    `Emergency Pause (Type 2): ${pauseReceipt.gasUsed.toString()} gas`
+  );
+
+  // checkEmergencyExpiry
+  const expiryTx = await govController.checkEmergencyExpiry();
+  const expiryReceipt = await expiryTx.wait();
+  console.log(`checkEmergencyExpiry: ${expiryReceipt.gasUsed.toString()} gas`);
 }
 
 main().catch((err) => {

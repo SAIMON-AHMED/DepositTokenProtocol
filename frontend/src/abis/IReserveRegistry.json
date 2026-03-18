@@ -1,0 +1,12 @@
+[
+  "function isReporter(address) view returns (bool)",
+  "function isStale() view returns (bool)",
+  "function lastUpdated() view returns (uint256)",
+  "function maxDeviation() view returns (uint256)",
+  "function requiredReporters() view returns (uint256)",
+  "function reserveRatio() view returns (uint256)",
+  "function setReporter(address,bool)",
+  "function setReserveRatio(uint256)",
+  "function stalenessThreshold() view returns (uint256)",
+  "function submitReserveRatio(uint256)"
+]
